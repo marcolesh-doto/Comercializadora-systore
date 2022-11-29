@@ -87,6 +87,13 @@ class OcapiConnectionBindingSaleOrderPayment(models.Model):
         if not journal_id or not payment_method_id:
             raise ValidationError('Debe configurar el diario/metodo de pago')
 
+        payment_method_line_id = self.env['account.payment.method.line'].search([('journal_id','=',journal_id.id),
+                                                                                ('payment_method_id','=',payment_method_id.id),
+                                                                                ('payment_type','=','inbound')])
+
+        if not payment_method_line_id:
+            raise ValidationError('Debe configurar el diario/metodo de pago con el metodo de pago')
+
         partner_id = self._get_ml_customer_partner()
         if not partner_id:
             raise ValidationError('No se pudo establecer el partner del pago')
@@ -105,6 +112,7 @@ class OcapiConnectionBindingSaleOrderPayment(models.Model):
                 'partner_id': partner_id.id,
                 'payment_type': 'inbound',
                 'payment_method_id': payment_method_id.id,
+                'payment_method_line_id': payment_method_line_id.id,
                 'journal_id': journal_id.id,
                 #'meli_payment_id': self.id,
                 'currency_id': currency_id.id,
@@ -156,8 +164,16 @@ class OcapiConnectionBindingSaleOrderPayment(models.Model):
 
         journal_id = self._get_ml_journal()
         payment_method_id = self.env['account.payment.method'].search([('code','=','outbound_online_producteca'),('payment_type','=','outbound')])
+
         if not journal_id or not payment_method_id:
             raise ValidationError('Debe configurar el diario/metodo de pago')
+
+        payment_method_line_id = self.env['account.payment.method.line'].search([('journal_id','=',journal_id.id),
+                                                                                ('payment_method_id','=',payment_method_id.id),
+                                                                                ('payment_type','=','inbound')])
+
+        if not payment_method_line_id:
+            raise ValidationError('Debe configurar el diario/metodo de pago con el metodo de pago')
 
         partner_id = self._get_ml_partner()
         if not partner_id:
@@ -176,6 +192,7 @@ class OcapiConnectionBindingSaleOrderPayment(models.Model):
                 'partner_id': partner_id.id,
                 'payment_type': 'outbound',
                 'payment_method_id': payment_method_id.id,
+                'payment_method_line_id': payment_method_line_id.id,
                 'journal_id': journal_id.id,
                 #'meli_payment_id': self.id,
                 'currency_id': currency_id.id,
@@ -437,12 +454,14 @@ class ProductecaConnectionBindingSaleOrder(models.Model):
     warehouseIntegration = fields.Text(string="WarehouseIntegration",index=True)
 
     amount = fields.Float(string="Amount",index=True)
+    couponAmount = fields.Float(string="couponAmount",index=True)
     def _compute_no_shipping_amount( self ):
         for pso in self:
             pso.amount_no_shipping = pso.amount - pso.shippingCost
 
     amount_no_shipping = fields.Float(string="Amount No Shipping", compute=_compute_no_shipping_amount, index=True )
     shippingCost = fields.Float(string="Shipping Cost",index=True)
+    shippingLink = fields.Char(string="Shipping Link",index=True)
     financialCost = fields.Float(string="Financial Cost",index=True)
     paidApproved = fields.Float(string="Paid Approved",index=True)
 

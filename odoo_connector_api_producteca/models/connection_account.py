@@ -696,12 +696,12 @@ class ProductecaConnectionAccount(models.Model):
         }
         #"warehouseIntegration"
         key_bind = ["channel","tags","integrations","cartId",
-                    "warehouse","amount",
+                    "warehouse","amount","couponAmount",
                     "shippingCost","financialCost","paidApproved",
                     "paymentStatus","deliveryStatus","paymentFulfillmentStatus",
                     "deliveryFulfillmentStatus","deliveryMethod","paymentTerm",
                     "currency","customId","isOpen",
-                    "isCanceled","hasAnyShipments","date","logisticType"]
+                    "isCanceled","hasAnyShipments","date","logisticType","shippingLink"]
         for k in key_bind:
             key = k
             if key in sale:
@@ -1332,7 +1332,7 @@ class ProductecaConnectionAccount(models.Model):
                     #_logger.info(vals)
                     set_delivery_line( so, delivery_price, delivery_message )
 
-                if (so.carrier_id and pso.shippingCost==0.0 ):
+                if ((so.carrier_id and pso.shippingCost==0.0 ) or including_shipping_cost=="never"):
                     delivery_line = get_delivery_line( so )
                     if delivery_line:
                         delivery_line.price_unit = float(0.0)
@@ -1344,7 +1344,7 @@ class ProductecaConnectionAccount(models.Model):
                     if delivery_line and 'purchase_price' in saleorderline_obj._fields:
                         delivery_line.purchase_price = float(pso.shipment_method_cost)
 
-                if ((so.carrier_id and pso.shippingCost==0.0) or including_shipping_cost=="never"):
+                if ((so.carrier_id and pso.shippingCost==0.0) and including_shipping_cost=="never"):
                     so._remove_delivery_line()
 
 
@@ -1425,7 +1425,7 @@ class ProductecaConnectionAccount(models.Model):
                                 if so:
                                     so.message_post(body=str(error["error"]))
                                 pass;
-                        elif opay.account_payment_id:
+                        elif opay.account_payment_id and "account_payment_group_id" in opay._fields:
                             if not opay.account_payment_group_id:
                                 opay.account_payment_group_id = opay.account_payment_id.payment_group_id
                             if opay.account_payment_group_id and not opay.account_payment_group_id.receiptbook_id:
@@ -1509,7 +1509,19 @@ class ProductecaConnectionAccount(models.Model):
 
         #try:
         if so:
-            if account.configuration.import_sales_action and so.producteca_bindings:
+            import_sales_action = False
+            import_sales_action = chanbinded and chanbinded.import_sales_action
+            full_log = chanbinded and chanbinded.import_sales_action_full_logistic
+
+            import_sales_action = import_sales_action or account.configuration.import_sales_action
+            full_log = full_log or account.configuration.import_sales_action_full_logistic
+            if full_log:
+                if full_log in str(pso.logisticType):
+                    import_sales_action = chanbinded and chanbinded.import_sales_action_full
+                    import_sales_action = import_sales_action or account.configuration.import_sales_action_full
+
+
+            if import_sales_action and so.producteca_bindings:
 
                 #update state:
                 pso.state = "payment_required"
@@ -1536,16 +1548,20 @@ class ProductecaConnectionAccount(models.Model):
                 cond_refunded = so.producteca_bindings[0].paymentStatus in ['Refunded']
                 cond_canceled = so.producteca_bindings[0].isCanceled
 
-                _logger.info("import_sales_action: "+str(account.configuration.import_sales_action)+" cond:"+str(cond))
-                if "payed_confirm_order" in account.configuration.import_sales_action:
+                _logger.info("import_sales_action: "+str(import_sales_action)+" cond:"+str(cond))
+                _logger.info("so.name: "+str(so.name)+" so.state: "+str(so.state))
+                _logger.info("cond_refunded: "+str(cond_refunded)+" paymentStatus: "+str(so.producteca_bindings[0].paymentStatus))
+                _logger.info("cond_canceled: "+str(cond_canceled)+"  isCanceled: "+str(so.producteca_bindings[0].isCanceled))
+
+                if "payed_confirm_order" in import_sales_action:
                     if so.state in ['draft','sent'] and cond:
                         so.action_confirm()
-                    if so.state in['open','done'] and cond_refunded:
+                    if so.state in['open','done','sale'] and cond_refunded:
                         if cond_canceled:
                             _logger.info("Cancelling order")
                             so.action_cancel()
 
-                if "_shipment" in account.configuration.import_sales_action:
+                if "_shipment" in import_sales_action:
                     if so.state in ['sale','done']:
                         _logger.info("Shipment confirm")
                         dones = False
@@ -1574,7 +1590,7 @@ class ProductecaConnectionAccount(models.Model):
                                 _logger.info("Shipment not complete: TODO: make an action, dones:"+str(dones)+" drafts: "+str(drafts)+" cancels:"+str(cancels))
                                 so.producteca_deliver()
 
-                if "_invoice" in account.configuration.import_sales_action:
+                if "_invoice" in import_sales_action:
                     if so.state in ['sale','done']:
                         _logger.info("Invoice confirm")
                         dones = False

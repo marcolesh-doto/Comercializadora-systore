@@ -40,13 +40,13 @@ class SaleOrder(models.Model):
         context = context or self.env.context
         for so in self:
             if so.producteca_bindings:
-                pso = so.producteca_bindings[0]                
+                pso = so.producteca_bindings[0]
                 if pso:
                     ret = pso.update()
                     if ret and 'name' in ret:
                         _logger.error(ret)
                         return ret
-                        
+
     def producteca_deliver( self ):
         _logger.info("producteca_deliver")
         res= {}

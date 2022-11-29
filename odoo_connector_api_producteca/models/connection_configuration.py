@@ -71,6 +71,68 @@ class ProductectaChannelBinding(models.Model):
     warehouse_id = fields.Many2one( "stock.warehouse", string="Almacen" )
     import_sale_start_date = fields.Datetime( string="Channel Sale Date Start" )
     including_shipping_cost = fields.Selection(string="Incluir envio en pedido y factura", selection=[('always','Siempre'),('never','Nunca')],default='always')
+    import_sales_action = fields.Selection([ ("quotation_only","Default: Quotation"),
+                                            ("payed_confirm_order","Payment confirm order"),
+                                            ("payed_confirm_order_shipment","Payment confirm order and shipment"),
+                                            ("payed_confirm_order_invoice","Payment confirm order and invoice"),
+                                            ("payed_confirm_order_invoice_shipment","Payment confirm order, shipment and invoice")],
+                                            string="Action from importing Sale",default="quotation_only")
+    import_sales_action_full = fields.Selection([ ("quotation_only","Default: Quotation"),
+                                            ("payed_confirm_order","Payment confirm order"),
+                                            ("payed_confirm_order_shipment","Payment confirm order and shipment"),
+                                            ("payed_confirm_order_invoice","Payment confirm order and invoice"),
+                                            ("payed_confirm_order_invoice_shipment","Payment confirm order, shipment and invoice")],
+                                            string="Action from importing Sale (FULL)",default="quotation_only")
+    import_sales_action_full_logistic = fields.Char(string="Full Logistic",help="MercadoEnvios Full",index=True)
+
+    def FixJournalMethod(self):
+        _logger.info("FixJournalMethod")
+        journal_id = self.payment_journal_id
+        if not journal_id:
+            _logger.info("No journal defined")
+            return;
+
+        _logger.info("payment_journal_id"+str(journal_id and journal_id.name))
+
+        payment_method_id_in = self.env['account.payment.method'].search([
+                                            ('code','=','inbound_online_producteca'),
+                                            ('payment_type','=','inbound')])
+        payment_method_id_out = self.env['account.payment.method'].search([
+                                            ('code','=','outbound_online_producteca'),
+                                            ('payment_type','=','outbound')])
+
+        if payment_method_id_in:
+            payment_method_line_id_in = self.env['account.payment.method.line'].search([('journal_id','=',journal_id.id),
+                                                                                    ('payment_method_id','=',payment_method_id_in.id),
+                                                                                    ('payment_type','=','inbound')])
+            if not payment_method_line_id_in:
+                _logger.info("Fixing inbound method")
+                payment_method_line_id_in = self.env['account.payment.method.line'].create({
+                    "journal_id": journal_id.id,
+                    "payment_method_id": payment_method_id_in.id,
+                    "payment_type": "inbound"
+                })
+            if payment_method_line_id_in and not payment_method_line_id_in.payment_account_id:
+                payment_method_line_id_in.payment_account_id = journal_id.default_account_id
+        else:
+            _logger.info("No method inbound defined")
+
+        if payment_method_id_out:
+            payment_method_line_id_out = self.env['account.payment.method.line'].search([('journal_id','=',journal_id.id),
+                                                                                    ('payment_method_id','=',payment_method_id_out.id),
+                                                                                    ('payment_type','=','outbound')])
+            if not payment_method_line_id_out:
+                _logger.info("Fixing outbound method")
+                payment_method_line_id_out = self.env['account.payment.method.line'].create({
+                    "journal_id": journal_id.id,
+                    "payment_method_id": payment_method_id_out.id,
+                    "payment_type": "outbound"
+                })
+            if payment_method_line_id_out and not payment_method_line_id_out.payment_account_id:
+                payment_method_line_id_out.payment_account_id = journal_id.default_account_id
+        else:
+            _logger.info("No method outbound defined")
+
 
 
 class ProductecaConnectionConfiguration(models.Model):
@@ -84,7 +146,13 @@ class ProductecaConnectionConfiguration(models.Model):
 
     accounts = fields.One2many( "producteca.account","configuration", string="Accounts", help="Accounts"  )
 
-
+    import_sales_action_full = fields.Selection([ ("quotation_only","Default: Quotation"),
+                                            ("payed_confirm_order","Payment confirm order"),
+                                            ("payed_confirm_order_shipment","Payment confirm order and shipment"),
+                                            ("payed_confirm_order_invoice","Payment confirm order and invoice"),
+                                            ("payed_confirm_order_invoice_shipment","Payment confirm order, shipment and invoice")],
+                                            string="Action from importing Sale (FULL)",default="quotation_only")
+    import_sales_action_full_logistic = fields.Char(string="Full Logistic",help="MercadoEnvios Full",index=True)
 
     #Import
 

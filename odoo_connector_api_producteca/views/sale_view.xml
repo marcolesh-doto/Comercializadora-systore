@@ -65,6 +65,7 @@
                       <field name="customId"/>
                       <field name="paymentTerm"/>
                       <field name="logisticType"/>
+                      <field name="shippingLink" widget="url"/>
                   </group>
                 </group>
                 <notebook>
@@ -81,9 +82,11 @@
                     <field name="payments">
                       <tree delete="0" edit="0" create="0">
                         <field name="name"/>
+                        <field name="method"/>
                         <field name="date"/>
                         <field name="account_payment_id"/>
                         <field name="amount"/>
+                        <field name="couponAmount"/>
                         <field name="status"/>
                       </tree>
                     </field>
@@ -112,7 +115,7 @@
                   </page>
                 </notebook>
               </sheet>
-              
+
             </form>
           </field>
       </record>
@@ -163,6 +166,7 @@
                     <field name="deliveryStatus" optional="hide"/>
                     <field name="amount" widget="monetary"/>
                     <field name="amount_no_shipping" widget="monetary"/>
+                    <field name="shippingLink" widget="url"/>
                     <!--field name="order_id"/>
                     <field name="shipping_id" invisible="0"/>
                     <field name="status"/>
