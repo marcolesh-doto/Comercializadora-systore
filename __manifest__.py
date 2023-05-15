@@ -1,27 +1,33 @@
-# Copyright 2019 Ecosoft Co., Ltd. (http://ecosoft.co.th)
+# Copyright 2016 ACSONE SA/NV (<http://acsone.eu>)
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
-
 {
-    "name": "Stock Card Report",
-    "summary": "Add stock card report on Inventory Reporting.",
-    "version": "15.0.1.0.0",
-    "category": "Warehouse",
-    "website": "https://github.com/OCA/stock-logistics-reporting",
-    "author": "Ecosoft, Odoo Community Association (OCA)",
+    "name": "Date Range",
+    "summary": "Manage all kind of date range",
+    "version": "15.0.1.1.0",
+    "category": "Uncategorized",
+    "website": "https://github.com/OCA/server-ux",
+    "author": "ACSONE SA/NV, Odoo Community Association (OCA)",
     "license": "AGPL-3",
-    "depends": ["stock", "date_range", "report_xlsx_helper"],
+    "installable": True,
+    "depends": [
+        "web",
+    ],
+    # odoo_test_helper is needed for the tests
     "data": [
+        "data/ir_cron_data.xml",
         "security/ir.model.access.csv",
-        "data/paper_format.xml",
-        "data/report_data.xml",
-        "reports/stock_card_report.xml",
-        "wizard/stock_card_report_wizard_view.xml",
+        "security/date_range_security.xml",
+        "views/date_range_view.xml",
+        "wizard/date_range_generator.xml",
     ],
     "assets": {
         "web.assets_backend": [
-            "stock_card_report/static/src/css/**/*",
-            "stock_card_report/static/src/js/**/*",
-        ]
+            "date_range/static/src/js/date_range.esm.js",
+        ],
+        "web.assets_qweb": [
+            "date_range/static/src/xml/date_range.xml",
+        ],
     },
-    "installable": True,
+    "development_status": "Mature",
+    "maintainers": ["lmignon"],
 }
