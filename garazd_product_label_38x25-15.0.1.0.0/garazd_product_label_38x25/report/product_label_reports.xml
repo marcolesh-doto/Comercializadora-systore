@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="paperformat_label_38x25" model="report.paperformat">
+        <field name="name">Label 38x25 mm</field>
+        <field name="default" eval="True"/>
+        <field name="format">custom</field>
+        <field name="page_height">25</field>
+        <field name="page_width">38</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">1</field>
+        <field name="margin_bottom">0</field>
+        <field name="margin_left">0</field>
+        <field name="margin_right">0</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="report_product_label_38x25" model="ir.actions.report">
+        <field name="name">Product labels 38x25mm</field>
+        <field name="model">print.product.label.line</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="paperformat_id" ref="garazd_product_label_38x25.paperformat_label_38x25"/>
+        <field name="report_name">garazd_product_label_38x25.report_product_label_38x25_template</field>
+        <field name="report_file">garazd_product_label_38x25.report_product_label_38x25_template</field>
+    </record>
+
+    <record id="report_product_label_38x25_preview" model="ir.actions.report">
+        <field name="name">Product labels 38x25mm (preview)</field>
+        <field name="model">print.product.label.line</field>
+        <field name="report_type">qweb-html</field>
+        <field name="paperformat_id" ref="garazd_product_label_38x25.paperformat_label_38x25"/>
+        <field name="report_name">garazd_product_label_38x25.report_product_label_38x25_template</field>
+        <field name="report_file">garazd_product_label_38x25.report_product_label_38x25_template</field>
+    </record>
+
+</odoo>
