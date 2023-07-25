@@ -56,11 +56,13 @@ class ProductectaChannelBinding(models.Model):
     partner_account_receive_id = fields.Many2one( "account.account", string="Cuenta a cobrar (partner)")
     #account_payment_receiptbook_id = fields.Many2one( "account.payment.receiptbook", string="Recibos")
     account_payment_receipt_validation = fields.Selection([('draft','Borrador'),('validate','Autovalidación')], string="Payment validation",default='draft')
+    shipment_validation = fields.Selection([('manual','Manual'),('paid_validate','Autovalidación si pago'),('shipped_validate','Autovalidación si entrega')], string="Validacion de entrega",default='manual')
     #partner_account_send_id = fields.Many2one( "account.account", string="Cuenta a pagar (partner)")
     #sequence_id = fields.Many2one('ir.sequence', string='Order Sequence',
     #    help="Order labelling for this channel", copy=False)
 
-    #analytic_account_id = fields.Many2one("account.analytic.account",string="Cuenta Analitica")
+    analytic_account_id = fields.Many2one( "account.analytic.account", string="Cuenta Analítica" )
+    analytic_tag = fields.Many2one( "account.analytic.tag",  string="Etiqueta Analítica" )
     #l10n_mx_edi_usage = fields.Char(string="Uso",default="G03")
     #l10n_mx_edi_payment_method_id = fields.Many2one("l10n_mx_edi.payment.method",string="Forma de pago")
 
@@ -69,6 +71,7 @@ class ProductectaChannelBinding(models.Model):
 
     #chequear configuration_id.import_stock_locations
     warehouse_id = fields.Many2one( "stock.warehouse", string="Almacen" )
+    stock_picking_type_id = fields.Many2one( "stock.picking.type", string="Tipo de operacion" )
     import_sale_start_date = fields.Datetime( string="Channel Sale Date Start" )
     including_shipping_cost = fields.Selection(string="Incluir envio en pedido y factura", selection=[('always','Siempre'),('never','Nunca')],default='always')
     import_sales_action = fields.Selection([ ("quotation_only","Default: Quotation"),
