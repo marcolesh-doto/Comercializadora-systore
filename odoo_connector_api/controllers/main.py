@@ -179,7 +179,7 @@ class OcapiCatalog(http.Controller):
             return { "error": "bad format" }
         connection = self.get_connection_account(connector,**post)
         if not connection:
-            return {}
+            return {'error': 'acceso de cuenta'}
         return connection.list_pricestock(**post)
 
     @http.route('/ocapi/<string:connector>/pricelist', auth='public', type='json', methods=['POST'], csrf=False, cors='*')
