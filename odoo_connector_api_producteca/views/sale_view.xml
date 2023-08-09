@@ -24,6 +24,11 @@
                     attrs="{'invisible':[('integrations_integrationId','=',False)]}"
                     class="oe_stat_button"
                     icon="fa-refresh"/>
+                    <button name='shippingLinkPrint' type="object"
+                      string="Imprimir Guia"
+                      attrs="{'invisible':[('integrations_integrationId','=',False)]}"
+                      class="oe_stat_button"
+                      icon="fa-print"/>                    
                 </div>
                 <group>
                   <group>
@@ -65,6 +70,9 @@
                       <field name="customId"/>
                       <field name="paymentTerm"/>
                       <field name="logisticType"/>
+                      <field name="shippingLink" widget="url"/>
+                      <field name="shippingLink_pdf_file"/>
+                      <field name="shippingLink_pdf_filename"/>
                   </group>
                 </group>
                 <notebook>
@@ -81,9 +89,11 @@
                     <field name="payments">
                       <tree delete="0" edit="0" create="0">
                         <field name="name"/>
+                        <field name="method"/>
                         <field name="date"/>
                         <field name="account_payment_id"/>
                         <field name="amount"/>
+                        <field name="couponAmount"/>
                         <field name="status"/>
                       </tree>
                     </field>
@@ -112,7 +122,7 @@
                   </page>
                 </notebook>
               </sheet>
-              
+
             </form>
           </field>
       </record>
@@ -163,6 +173,7 @@
                     <field name="deliveryStatus" optional="hide"/>
                     <field name="amount" widget="monetary"/>
                     <field name="amount_no_shipping" widget="monetary"/>
+                    <field name="shippingLink" widget="url"/>
                     <!--field name="order_id"/>
                     <field name="shipping_id" invisible="0"/>
                     <field name="status"/>
@@ -191,7 +202,26 @@
                             attrs="{'invisible':[('producteca_bindings','=',False)]}"
                             class="oe_stat_button"
                             icon="fa-refresh"/>
+                            <button name='producteca_print' type="object"
+                              string="Imprimir guia"
+                              attrs="{'invisible':[('producteca_bindings','=',False)]}"
+                              class="oe_stat_button"
+                              icon="fa-print"/>
                             <field name="producteca_bindings" invisible="0"/>
+				<field name="producteca_sale_order" string="Orden" invisible="0"/>
+				<field name="producteca_sale_order_account" string="Marca" invisible="0"/>
+
+                            <group>
+                              <group>
+                                <field name="producteca_update_forbidden" invisible="0"/>
+                                <field name="producteca_binding" invisible="0"/>
+	                        <field name="producteca_channel_binding" string="Canal" invisible="0"/>
+                              </group>
+                              <group>
+                                <field name="producteca_shippingLink_pdf_file"/>
+                                <field name="producteca_shippingLink_attachment"/>
+                              </group>
+                            </group>
                             <!--group>
                               <field name="producteca_order_id" invisible="0"/>
                               <field name="producteca_status" invisible="0"/>
@@ -210,6 +240,10 @@
                         </page>
                     </notebook>
                 </data>
+                <xpath expr="//field[@name='payment_term_id']" position="after">
+                  <field name="producteca_shippingLink_attachment"/>
+                  <field name="producteca_shippingLink_pdf_file"/>
+                </xpath>
             </field>
         </record>
         

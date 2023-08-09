@@ -7,6 +7,9 @@ _logger = logging.getLogger(__name__)
 import pdb
 #from .warning import warning
 import requests
+from urllib.request import urlopen
+import base64
+import mimetypes
 
 from .versions import *
 from odoo.exceptions import UserError, ValidationError
@@ -87,6 +90,14 @@ class OcapiConnectionBindingSaleOrderPayment(models.Model):
         if not journal_id or not payment_method_id:
             raise ValidationError('Debe configurar el diario/metodo de pago')
 
+        payment_method_line_id = self.env['account.payment.method.line'].search([('journal_id','=',journal_id.id),
+                                                                                ('payment_method_id','=',payment_method_id.id),
+                                                                                ('payment_type','=','inbound')])
+
+        if not payment_method_line_id:
+            raise ValidationError('Debe configurar el diario/metodo de pago con el metodo de pago')
+
+
         partner_id = self._get_ml_customer_partner()
         if not partner_id:
             raise ValidationError('No se pudo establecer el partner del pago')
@@ -105,6 +116,7 @@ class OcapiConnectionBindingSaleOrderPayment(models.Model):
                 'partner_id': partner_id.id,
                 'payment_type': 'inbound',
                 'payment_method_id': payment_method_id.id,
+                'payment_method_line_id': payment_method_line_id.id,
                 'journal_id': journal_id.id,
                 #'meli_payment_id': self.id,
                 'currency_id': currency_id.id,
@@ -156,8 +168,16 @@ class OcapiConnectionBindingSaleOrderPayment(models.Model):
 
         journal_id = self._get_ml_journal()
         payment_method_id = self.env['account.payment.method'].search([('code','=','outbound_online_producteca'),('payment_type','=','outbound')])
+
         if not journal_id or not payment_method_id:
             raise ValidationError('Debe configurar el diario/metodo de pago')
+
+        payment_method_line_id = self.env['account.payment.method.line'].search([('journal_id','=',journal_id.id),
+                                                                                ('payment_method_id','=',payment_method_id.id),
+                                                                                ('payment_type','=','inbound')])
+
+        if not payment_method_line_id:
+            raise ValidationError('Debe configurar el diario/metodo de pago con el metodo de pago')
 
         partner_id = self._get_ml_partner()
         if not partner_id:
@@ -176,6 +196,7 @@ class OcapiConnectionBindingSaleOrderPayment(models.Model):
                 'partner_id': partner_id.id,
                 'payment_type': 'outbound',
                 'payment_method_id': payment_method_id.id,
+                'payment_method_line_id': payment_method_line_id.id,
                 'journal_id': journal_id.id,
                 #'meli_payment_id': self.id,
                 'currency_id': currency_id.id,
@@ -328,7 +349,7 @@ class ProductecaConnectionBindingSaleOrderClient(models.Model):
 
     profile = fields.Text(string="Profile") # { "app": 2, "integrationId": 63807563 }
     profile_app = fields.Integer(string="Profile App")
-    profile_integrationId = fields.Integer(string="Profile Integration Id")
+    profile_integrationId = fields.Char(string="Profile Integration Id",index=True)
 
     billingInfo = fields.Text(string="billingInfo")
     billingInfo_docType = fields.Char(string="Doc Type (BI)")
@@ -437,12 +458,16 @@ class ProductecaConnectionBindingSaleOrder(models.Model):
     warehouseIntegration = fields.Text(string="WarehouseIntegration",index=True)
 
     amount = fields.Float(string="Amount",index=True)
+    couponAmount = fields.Float(string="couponAmount",index=True)
     def _compute_no_shipping_amount( self ):
         for pso in self:
             pso.amount_no_shipping = pso.amount - pso.shippingCost
 
     amount_no_shipping = fields.Float(string="Amount No Shipping", compute=_compute_no_shipping_amount, index=True )
     shippingCost = fields.Float(string="Shipping Cost",index=True)
+    shippingLink = fields.Char(string="Shipping Link",index=True)
+    shippingLink_pdf_file = fields.Binary(string='Shipping Pdf File',attachment=True)
+    shippingLink_pdf_filename = fields.Char(string='Shipping Pdf Filename')
     financialCost = fields.Float(string="Financial Cost",index=True)
     paidApproved = fields.Float(string="Paid Approved",index=True)
 
@@ -481,16 +506,16 @@ class ProductecaConnectionBindingSaleOrder(models.Model):
         return invoice
 
     def update(self):
-        _logger.info("Update producteca.sale_order")
+        #_logger.info("Update producteca.sale_order")
         #check from last notification
         for pso in self:
             notis = pso and pso.sale_notifications
             if notis:
-                _logger.info("producteca_update notis:"+str(notis))
+                #_logger.info("producteca_update notis:"+str(notis))
                 lastnotix = len(notis)-1
-                _logger.info("producteca_update lastnotix:"+str(lastnotix))
+                #_logger.info("producteca_update lastnotix:"+str(lastnotix))
                 LastNotif = pso.sale_notifications[lastnotix-1]
-                _logger.info("producteca_update LastNotif:"+str(LastNotif))
+                #_logger.info("producteca_update LastNotif:"+str(LastNotif))
                 if LastNotif:
                     if len(self)==1:
                         ret = LastNotif.process_notification()
@@ -530,3 +555,42 @@ class ProductecaConnectionBindingSaleOrder(models.Model):
         # res = True
 
         return res
+
+    def shippingLinkPrint( self ):
+        #_logger.info("shippingLinkPrint from: "+str(self.shippingLink))
+        warningobj = self.env["producteca.warning"]
+        ret = {}
+        if self.shippingLink:
+            try:
+                data = urlopen(self.shippingLink).read()
+                #_logger.info(data)
+                b64_pdf = base64.b64encode(data)
+                ATTACHMENT_NAME = "Shipment_"+self.name
+                self.shippingLink_pdf_filename = ATTACHMENT_NAME+".pdf"
+                self.shippingLink_pdf_file = b64_pdf
+
+                sale_order = self.sale_order
+
+                sale_order.producteca_shippingLink_pdf_filename = ATTACHMENT_NAME+".pdf"
+                sale_order.producteca_shippingLink_pdf_file = b64_pdf
+
+                attachment = self.env['ir.attachment'].create({
+                    'name': ATTACHMENT_NAME,
+                    'type': 'binary',
+                    'datas': b64_pdf,
+                    #'datas_fname': ATTACHMENT_NAME + '.pdf',
+                    #'store_fname': ATTACHMENT_NAME,
+                    'res_model': "sale.order",
+                    'res_id': sale_order.id,
+                    'mimetype': 'application/pdf'
+                })
+                if attachment:
+                    sale_order.producteca_shippingLink_attachment = attachment.id
+
+            except Exception as e:
+                _logger.error("shippingLinkPrint error: "+str(e))
+                ret = warningobj.info( title='No se puede imprimir la guia',
+                                    message=str(e),
+                                    message_html=str(e) )
+                pass;
+        return ret

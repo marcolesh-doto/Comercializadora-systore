@@ -122,6 +122,9 @@
                     <field name="import_sales"/>
                     <field name="including_shipping_cost"/>
                     <field name="import_sales_action"/>
+                    <field name="import_sales_action_full"/>
+                    <field name="import_sales_action_full_logistic" />
+
                     <field name="import_products"/>
                     <field name="import_stock"/>
                     <field name="import_price_list"/>
@@ -163,6 +166,71 @@
                         <field name="usage"/>
                       </tree>
                     </field>
+                  </group>
+                </group>
+              </sheet>
+            </form>
+          </field>
+      </record>
+
+      <record id="view_connection_configuration_producteca_channel_binding" model="ir.ui.view" >
+					<field name="name">producteca.channel.binding.form</field>
+					<field name="model">producteca.channel.binding</field>
+					<field name="arch" type="xml">
+            <form string="Producteca Channel Binding">
+							<header>
+								<field name="channel_id"/>
+							</header>
+							<sheet>
+								<div class="oe_title">
+									<h1><field name="name"/></h1>
+								</div>
+                <group>
+                  <div class="oe_button_box" name="button_box_mel" style="width: auto;">
+                    <button name='FixJournalMethod' type="object"
+  											string="Ajustar Diario de pago"
+  											title="Ajustar Diario de pago"
+  											class="oe_stat_button"
+  											icon="fa-user-circle"/>
+                  </div>
+                </group>
+                <group string="Base" name="basic">
+                  <group>
+                    <field name="channel_id"/>
+                    <field name="configuration_id"/>
+                    <field name="code"/>
+                    <field name="app_id"/>
+                  </group>
+                  <group>
+                    <field name="country_id"/>
+                    <field name="seller_user"/>
+                    <field name="seller_team"/>
+                  </group>
+                </group>
+                <group string="Ventas" name="automate">
+                  <group>
+                    <field name="import_sale_start_date"/>
+                    <field name="including_shipping_cost"/>
+                    <field name="import_sales_action"/>
+                    <field name="import_sales_action_full"/>
+                    <field name="import_sales_action_full_logistic"/>
+                  </group>
+                  <group>
+                    <field name="warehouse_id"/>
+                    <field name="stock_picking_type_id"/>
+                  </group>
+                </group>
+                <group string="Cuentas" name="accounting">
+                  <group>
+                    <field name="journal_id"/>
+                    <field name="partner_id"/>
+                    <field name="analytic_account_id"/>
+                    <field name="analytic_tag"/>
+                  </group>
+                  <group>
+                    <field name="payment_journal_id"/>
+                    <field name="partner_account_receive_id"/>
+                    <field name="account_payment_receipt_validation"/>
                   </group>
                 </group>
               </sheet>

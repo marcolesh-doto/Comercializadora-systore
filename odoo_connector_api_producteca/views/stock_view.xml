@@ -26,5 +26,28 @@
                </xpath>
             </field>
         </record>
+        
+        <record model="ir.ui.view" id="view_stock_picking_form_producteca">
+            <field name="name">stock.picking.form.producteca</field>
+            <field name="model">stock.picking</field>
+            <field name="inherit_id" ref="stock.view_picking_form"/>
+            <field name="arch" type="xml">
+              <xpath expr="//group[1]" position="inside">
+                  <group string="Producteca" name="producteca_stock_picking"  
+                    col="2">
+                  <!--group string="Producteca" name="producteca_stock_picking"  
+                      attrs="{'invisible':[('sale_order.producteca_binding','=',False)]}"
+                      col="2"-->                    
+                    <button name='producteca_print' type="object"
+                      string="Imprimir guia"                      
+                      class="oe_stat_button"
+                      icon="fa-print"/>
+                      <field name="producteca_shippingLink_attachment" invisible="0"/>                      
+                  </group>
+               </xpath>
+            </field>
+        </record>
+        
+        
     </data>
 </odoo>

@@ -47,16 +47,24 @@ class ProductecaCatalog(OcapiCatalog):
 
     def get_producteca_connection(self, **post):
 
+        _logger.info("get_producteca_connection")
+
         connector = "producteca"
 
         access_token = post.get("access_token")
+        client_id = post.get("client_id")
 
         if not access_token:
             return False
 
-        connection_account = request.env['producteca.account'].sudo().search([('access_token','=',access_token)])
+        _logger.info("get_producteca_connection access_token:"+str(access_token))
 
-        _logger.info(connection_account)
+        connection_account = request.env['producteca.account'].sudo().search([('access_token','=ilike',access_token)])
+
+        if not connection_account:
+            connection_account = request.env['producteca.account'].sudo().search([('client_id','=ilike',client_id)])
+
+        _logger.info("get_producteca_connection:"+str(connection_account))
 
         if not connection_account or not len(connection_account)==1:
             return False

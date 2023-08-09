@@ -8,7 +8,7 @@
 
 {
     'name': 'Producteca Odoo Connector',
-    'version': '15.0.22.8',
+    'version': '15.0.23.14',
     'author': 'Moldeo Interactive, Producteca',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
@@ -30,7 +30,7 @@
         'data/account_data.xml',
     	#'views/category_view.xml',
     	#'views/banner_view.xml',
-        #'views/warning_view.xml',
+        'views/warning_view.xml',
         #'views/questions_view.xml',
         #'data/cron_jobs.xml',
         #'data/error_template_data.xml',

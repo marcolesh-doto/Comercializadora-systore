@@ -34,19 +34,84 @@ class SaleOrder(models.Model):
 
     #mercadolibre could have more than one associated order... packs are usually more than one order
     producteca_bindings = fields.Many2many( "producteca.sale_order", string="Producteca Connection Bindings" )
+    producteca_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde Producteca",default=False, index=True)
     
+    def _producteca_binding( self ):
+        for so in self:
+            so.producteca_binding = so.producteca_bindings and so.producteca_bindings[0]
+            
+    producteca_binding = fields.Many2one( "producteca.sale_order", string="Producteca Sale Order",compute=_producteca_binding )
+
+
+    @api.depends('producteca_bindings')
+    def _producteca_sale_order( self ):
+        for so in self:
+            so.producteca_sale_order = (so.producteca_bindings and so.producteca_bindings[0]) or None
+    producteca_sale_order = fields.Many2one( "producteca.sale_order", string="Producteca Sale Order", compute=_producteca_sale_order, store=True )
+
+    @api.depends('producteca_bindings')
+    def _producteca_channel_binding( self ):
+        for so in self:
+            so.producteca_sale_order = (so.producteca_bindings and so.producteca_bindings[0]) or None
+            so.producteca_channel_binding = (so.producteca_sale_order and so.producteca_sale_order.channel_binding_id) or None
+            
+    producteca_channel_binding = fields.Many2one( "producteca.channel.binding", string="Channel", compute=_producteca_channel_binding, store=True  )
+    
+    @api.depends('producteca_bindings')
+    def _producteca_sale_order_account( self ):
+        for so in self:
+            so.producteca_sale_order = (so.producteca_bindings and so.producteca_bindings[0]) or None
+            so.producteca_channel_binding = (so.producteca_sale_order and so.producteca_sale_order.channel_binding_id) or None
+            so.producteca_sale_order_account = (so.producteca_sale_order and so.producteca_sale_order.connection_account) or None
+    producteca_sale_order_account = fields.Many2one( "producteca.account", string="Producteca Account", compute=_producteca_sale_order_account, store=True  )
+
+    def _producteca_update_needed(self):
+        for so in self:
+            so.producteca_update_needed = True
+            if (so.producteca_bindings and (not so.producteca_sale_order or not so.producteca_channel_binding or not so.producteca_sale_order_account)):
+                so._producteca_sale_order_account()
+                so.producteca_update_needed = False
+                
+    producteca_update_needed = fields.Boolean(string="Test Update Needed",compute=_producteca_update_needed)
+
+    #etiqueta analitica con etiqueta (asociada al canal)
+    #cuenta analitica > se asocia la cuenta (producteca.account)
+
+    producteca_shippingLink_pdf_file_rel = fields.Binary(related="producteca_binding.shippingLink_pdf_file",string="Guia PDF")
+    producteca_shippingLink_pdf_file = fields.Binary(string="Guia (Producteca)",attachment=True,index=True)
+    producteca_shippingLink_pdf_filename = fields.Char(string="Guia (Producteca) Filename",index=True)
+    producteca_shippingLink_attachment =  fields.Many2one(
+            'ir.attachment',
+            string='Guia Pdf Adjunta',
+            copy=False
+        )
+
+    producteca_logistic_type = fields.Char(string="Logistic Type (Producteca)",related="producteca_sale_order.logisticType", index=True)
+
     def producteca_update( self, context=None ):
         _logger.info("producteca_update:"+str(self))
         context = context or self.env.context
         for so in self:
             if so.producteca_bindings:
-                pso = so.producteca_bindings[0]                
+                pso = so.producteca_bindings[0]
                 if pso:
                     ret = pso.update()
                     if ret and 'name' in ret:
                         _logger.error(ret)
                         return ret
-                        
+
+    def producteca_print( self, context=None ):
+        _logger.info("producteca_print:"+str(self))
+        context = context or self.env.context
+        for so in self:
+            if so.producteca_bindings:
+                pso = so.producteca_bindings[0]
+                if pso:
+                    ret = pso.shippingLinkPrint()
+                    if ret and 'name' in ret:
+                        _logger.error(ret)
+                        return ret
+
     def producteca_deliver( self ):
         _logger.info("producteca_deliver")
         res= {}
@@ -143,7 +208,7 @@ class ResPartner(models.Model):
     #besides, is there a way to identify duplicates other than integration ids
     producteca_bindings = fields.Many2many( "producteca.client", string="Producteca Connection Bindings" )
 
-#Odoo 15.0 Only            
+#Odoo 15.0 Only
 class AccountPaymentMethod(models.Model):
     _inherit = 'account.payment.method'
 
@@ -152,4 +217,4 @@ class AccountPaymentMethod(models.Model):
         res = super()._get_payment_method_information()
         res['outbound_online_producteca'] = {'mode': 'unique', 'domain': [('type', '=', 'bank')]}
         res['inbound_online_producteca'] = {'mode': 'unique', 'domain': [('type', '=', 'bank')]}
-        return res            
+        return res

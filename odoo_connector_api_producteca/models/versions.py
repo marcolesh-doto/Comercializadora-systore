@@ -16,6 +16,42 @@ prod_att_line = "product.template.attribute.line"
 acc_inv_model  = "account.move"
 acc_pay_ref = "ref"
 
+#price from pricelist
+def get_price_from_pl( pricelist, product, quantity ):
+    pl = pricelist
+    return_val = {}
+    try:
+        return_val = pl.price_get( product.id, quantity)
+    except Exception as E:
+        _logger.info("get_price_from_pl error:"+str(pricelist)+" product"+str(product)+" qty:"+str(quantity))
+        return_val[pl.id] = '0'
+        pass;
+        
+    return return_val
+
+#Autocommit
+def Autocommit( self, act=False ):
+    self._cr.autocommit(act)
+    return False
+    
+def UpdateProductType( product ):      
+    if (product and product.detailed_type not in ['product']):
+        try:
+            product.write( { 'detailed_type': 'product' } )
+        except Exception as e:
+            _logger.info("Set type almacenable ('product') not possible:")
+            _logger.error(e, exc_info=True)
+            pass;        
+    
+def ProductType():
+    return { "detailed_type": "product" }
+
+def get_ref_view( self, module_name, view_name ):
+
+    refview = self.env['ir.model.data'].check_object_reference( module_name, view_name )
+
+    return refview
+
 def payment_post( self ):
     return self.post()
 
