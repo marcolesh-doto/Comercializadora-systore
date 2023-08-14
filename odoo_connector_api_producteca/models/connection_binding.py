@@ -133,7 +133,7 @@ class ProductecaConnectionBindingProductTemplate(models.Model):
                         _logger.info( s )
                         sjson = {
                             "warehouseId": locid,
-                            "warehouse": sq.location_id.display_name,
+                            "warehouse": s.location_id.display_name,
                             "quantity": quantity,
                             "reserved": reserved_quantity,
                             "available": quantity - reserved_quantity
