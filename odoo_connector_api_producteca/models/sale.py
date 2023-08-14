@@ -35,11 +35,11 @@ class SaleOrder(models.Model):
     #mercadolibre could have more than one associated order... packs are usually more than one order
     producteca_bindings = fields.Many2many( "producteca.sale_order", string="Producteca Connection Bindings" )
     producteca_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde Producteca",default=False, index=True)
-    
+
     def _producteca_binding( self ):
         for so in self:
             so.producteca_binding = so.producteca_bindings and so.producteca_bindings[0]
-            
+
     producteca_binding = fields.Many2one( "producteca.sale_order", string="Producteca Sale Order",compute=_producteca_binding )
 
 
@@ -47,7 +47,7 @@ class SaleOrder(models.Model):
     def _producteca_sale_order( self ):
         for so in self:
             so.producteca_sale_order = (so.producteca_bindings and so.producteca_bindings[0]) or None
-    producteca_sale_order = fields.Many2one( "producteca.sale_order", string="Producteca Sale Order", compute=_producteca_sale_order, store=True )
+    producteca_sale_order = fields.Many2one( "producteca.sale_order", string="Producteca Sale Order", compute=_producteca_sale_order, store=True, index=True )
 
     @api.depends('producteca_bindings')
     def _producteca_channel_binding( self ):
@@ -55,7 +55,7 @@ class SaleOrder(models.Model):
             so.producteca_sale_order = (so.producteca_bindings and so.producteca_bindings[0]) or None
             so.producteca_channel_binding = (so.producteca_sale_order and so.producteca_sale_order.channel_binding_id) or None
             
-    producteca_channel_binding = fields.Many2one( "producteca.channel.binding", string="Channel", compute=_producteca_channel_binding, store=True  )
+    producteca_channel_binding = fields.Many2one( "producteca.channel.binding", string="Channel", compute=_producteca_channel_binding, store=True, index=True  )
     
     @api.depends('producteca_bindings')
     def _producteca_sale_order_account( self ):
@@ -63,7 +63,7 @@ class SaleOrder(models.Model):
             so.producteca_sale_order = (so.producteca_bindings and so.producteca_bindings[0]) or None
             so.producteca_channel_binding = (so.producteca_sale_order and so.producteca_sale_order.channel_binding_id) or None
             so.producteca_sale_order_account = (so.producteca_sale_order and so.producteca_sale_order.connection_account) or None
-    producteca_sale_order_account = fields.Many2one( "producteca.account", string="Producteca Account", compute=_producteca_sale_order_account, store=True  )
+    producteca_sale_order_account = fields.Many2one( "producteca.account", string="Producteca Account", compute=_producteca_sale_order_account, store=True, index=True  )
 
     def _producteca_update_needed(self):
         for so in self:
@@ -215,6 +215,6 @@ class AccountPaymentMethod(models.Model):
     @api.model
     def _get_payment_method_information(self):
         res = super()._get_payment_method_information()
-        res['outbound_online_producteca'] = {'mode': 'unique', 'domain': [('type', '=', 'bank')]}
-        res['inbound_online_producteca'] = {'mode': 'unique', 'domain': [('type', '=', 'bank')]}
+        res['outbound_online_producteca'] = {'mode': 'multi', 'domain': [('type', '=', 'bank')]}
+        res['inbound_online_producteca'] = {'mode': 'multi', 'domain': [('type', '=', 'bank')]}
         return res

@@ -1067,6 +1067,8 @@ class ProductecaConnectionAccount(models.Model):
             if (1==1 and "x_studio_referencia" in self.env["sale.order"]._fields): #VIVALMO
                 sale_order_fields["x_studio_referencia"] = fields['name']
                 sale_order_fields["client_order_ref"] = fields['name']
+
+            if (chanbinded and "analytic_account_id" in chanbinded._fields and "analytic_account_id" in self.env["sale.order"]._fields):
                 sale_order_fields["analytic_account_id"] = chanbinded.analytic_account_id and chanbinded.analytic_account_id.id
 
             if chan:
@@ -1088,8 +1090,12 @@ class ProductecaConnectionAccount(models.Model):
                 so.commitment_date = so.date_order
 
         #process "lines"
+        lines_processed = []
+        lines_processed_full = False
+        lines_processed_total = 0
         if "lines" in sale and pso:
             lines = sale["lines"]
+            lines_processed_full = True
             for line in lines:
                 lid = str(psoid)+str("_")+str(line["variation"]["id"])
                 linefields = {
@@ -1131,6 +1137,7 @@ class ProductecaConnectionAccount(models.Model):
                 oli = self.env["producteca.sale_order_line"].sudo().search([( 'conn_id', '=', lid ),
                                                                     ('order_id','=',pso.id),
                                                                     ("connection_account","=",account.id)])
+
                 if not oli:
                     _logger.info("Creating producteca order line")
                     oli = self.env["producteca.sale_order_line"].sudo().create( linefields )
@@ -1169,6 +1176,7 @@ class ProductecaConnectionAccount(models.Model):
                     #errors+= str(error)+"\n"
                     result.append(error)
                     #return result
+                    lines_processed_full = False
                     if so:
                         so.message_post(body=str(error["error"]))
                 else:
@@ -1186,6 +1194,8 @@ class ProductecaConnectionAccount(models.Model):
                             'product_uom': product.uom_id.id,
                             'name': product.display_name or linefields['name'],
                         }
+                        if (chanbinded and "analytic_tag" in chanbinded and "analytic_tag_ids" in soline_mod._fields):
+                            so_line_fields["analytic_tag_ids"] = (chanbinded.analytic_tag and chanbinded.analytic_tag.id and [(6, 0, [chanbinded.analytic_tag.id])]) or None
                         _logger.info("Creating Odoo Sale Order Line Item: "+str(so_line_fields))
                         so_line = soline_mod.search( [  #('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                         #('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
@@ -1197,6 +1207,10 @@ class ProductecaConnectionAccount(models.Model):
                         else:
                             so_line.write( ( so_line_fields ) )
 
+                        so_line_fields["price"] = float(linefields['price'])
+                        lines_processed.append(so_line_fields)
+                        lines_processed_total+= so_line_fields["price"]*so_line_fields["product_uom_qty"]
+
                         if so_line and oli:
                             #Many2one this time
                             so_line.producteca_bindings = oli
@@ -1206,7 +1220,7 @@ class ProductecaConnectionAccount(models.Model):
 
         product_discount = self.env["product.product"].search([('default_code','=','DISCOUNT')], limit=1)
 
-        if pso and so and "couponAmount" in pso._fields and pso.couponAmount > 0 and product_discount:
+        if (1==2 and pso and so and "couponAmount" in pso._fields and pso.couponAmount > 0 and product_discount):
             product = product_discount
             soline_mod = self.env["sale.order.line"]
             so_line_fields = {
@@ -1228,6 +1242,7 @@ class ProductecaConnectionAccount(models.Model):
                 so_line = soline_mod.create( ( so_line_fields ))
             else:
                 so_line.write( ( so_line_fields ) )
+
 
         #process "shipments", create res.partner shipment services
         if "shipments" in sale and pso:
@@ -1375,10 +1390,85 @@ class ProductecaConnectionAccount(models.Model):
                 if ((so.carrier_id and pso.shippingCost==0.0) and including_shipping_cost=="never"):
                     so._remove_delivery_line()
 
+        if (not "shipments" in sale or ("shipments" in sale and not sale["shipments"])):
+            #CREATING SHIPMENT SERVICE AND CARRIERS
+            _logger.info("creating shipping without shipping")
+            _logger.info("creating shipping without pso.deliveryMethod: "+str(pso.deliveryMethod))
+            _logger.info("creating shipping without pso.shippingCost: "+str(pso.shippingCost))
+            if pso and so and pso.deliveryMethod and pso.shippingCost>0.0:
+                for iiix in ['11']:
+                    _logger.info("creating shipping without shipping: "+str(iiix))
+                    product_obj = self.env["product.product"]
+                    product_tpl = self.env["product.template"]
+                    ship_name = pso.deliveryMethod
+
+                    if not ship_name or len(ship_name)==0:
+                        continue;
+
+                    product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
+                                ('default_code','=',ship_name),
+                                ('name','=',ship_name)] )
+
+                    if len(product_shipping_id):
+                        product_shipping_id = product_shipping_id[0]
+                    else:
+                        product_shipping_id = None
+                        ship_prod = {
+                            "name": ship_name,
+                            "default_code": ship_name,
+                            "type": "service",
+                            #"taxes_id": None
+                            #"categ_id": 279,
+                            #"company_id": company.id
+                        }
+                        _logger.info("ship_prod:"+str(ship_prod) )
+                        product_shipping_tpl = product_tpl.create((ship_prod))
+                        if (product_shipping_tpl):
+                            product_shipping_id = product_shipping_tpl.product_variant_ids[0]
+
+                    _logger.info(product_shipping_id)
+
+                    if (not product_shipping_id):
+                        _logger.info('Failed to create shipping product service')
+                        continue;
+
+                    ship_carrier = {
+                        "name": ship_name,
+                    }
+                    ship_carrier["product_id"] = product_shipping_id.id
+                    ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name']) ])
+                    if not ship_carrier_id:
+                        ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
+                    if (len(ship_carrier_id)>1):
+                        ship_carrier_id = ship_carrier_id[0]
+
+                    if not so:
+                        continue;
+
+
+                    #if ( ship_carrier_id and not so.carrier_id and pso.shippingCost and pso.shippingCost>0.0 ):
+                    if ( ship_carrier_id and not so.carrier_id  ):
+                        so.carrier_id = ship_carrier_id
+                        #vals = sorder.carrier_id.rate_shipment(sorder)
+                        #if vals.get('success'):
+                        #delivery_message = vals.get('warning_message', False)
+                        delivery_message = "Defined by Producteca"
+                        #delivery_price = vals['price']
+                        delivery_price = self.ocapi_price_unit( product_shipping_id, float(pso.shippingCost) )
+                        #display_price = vals['carrier_price']
+                        #_logger.info(vals)
+                        set_delivery_line( so, delivery_price, delivery_message )
+
+                    if ((so.carrier_id and pso.shippingCost==0.0 ) or including_shipping_cost=="never"):
+                        delivery_line = get_delivery_line( so )
+                        if delivery_line:
+                            delivery_line.price_unit = float(0.0)
+                            delivery_line.qty_to_invoice = 0.0
 
         #process payments
         if "payments" in sale and pso:
             payments = sale["payments"]
+            pso.couponAmount = 0
             for payment in payments:
                 payid = str(psoid)+str("_")+str(payment["id"])
                 payfields = {
@@ -1430,6 +1520,12 @@ class ProductecaConnectionAccount(models.Model):
                 else:
                     _logger.info("Updating producteca payment record")
                     opay.write( payfields )
+
+                if opay and opay.status == 'Approved':
+                    pso.couponAmount+= opay.couponAmount;
+
+
+
                 if not opay:
                     error = {"error": "Producteca Order Payment creation error"}
                     result.append(error)
@@ -1499,6 +1595,7 @@ class ProductecaConnectionAccount(models.Model):
                 #ADD COMISION
                 #product_fee = "product_fee" in chan and config.mercadolibre_product_fee
                 product_fee = False
+                pso._transaction_fee()
                 fea_amount = pso.transaction_fee
 
                 if not product_fee:
@@ -1536,6 +1633,35 @@ class ProductecaConnectionAccount(models.Model):
                     else:
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
+        if pso and so and "couponAmount" in pso._fields and pso.couponAmount > 0 and so:
+            soline_mod = self.env["sale.order.line"]
+            _logger.info("lines_processed:"+str(lines_processed)+" lines_processed_full:"+str(lines_processed_full))
+            if lines_processed and lines_processed_full:
+                for liproidx in lines_processed:
+                    so_line_fields = liproidx
+                    so_line = soline_mod.search( [  #('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
+                                                    #('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
+                                                    ('product_id','=',so_line_fields["product_id"]),
+                                                    ('order_id','=',so.id)] )
+                    if so_line:
+                        line_price_unit = so_line_fields["price"]
+                        line_price_qty = so_line_fields["product_uom_qty"]
+                        line_total = line_price_unit*line_price_qty
+                        line_total_perc = line_total / lines_processed_total
+
+                        _logger.info("so_line ok! line_price_unit:"+str(line_price_unit)+" line_price_qty:"+str(line_price_qty)+" line_total:"+str(line_total)+" line_total_perc:"+str(line_total_perc)+" lines_processed_total:"+str(lines_processed_total) )
+                        #chequear si se puede aplicar simplemente el descuento fijo correspondiente a esta linea
+
+                        del so_line_fields["price"]
+                        if "discount" in so_line._fields:
+                            if line_total>0:
+                                so_line_fields["discount"] = 100.0 * ((line_total_perc * pso.couponAmount) / line_total)
+                        else:
+                            so_line_fields["price_unit"] =  self.ocapi_price_unit( product, float( line_price_unit - (line_total_perc * pso.couponAmount) / line_price_qty ) )
+                        so_line.write( ( so_line_fields ) )
+                    else:
+                        _logger.info("NO so_line! "+str(so_line))
+
 
         #try:
         if so:
@@ -1569,7 +1695,7 @@ class ProductecaConnectionAccount(models.Model):
                 #    pso.state = "confirmed"
 
                 #check action:
-                cond_total = abs(so.amount_total - so.producteca_bindings[0].paidApproved ) <= 1.0
+                cond_total = abs(so.amount_total - so.producteca_bindings[0].paidApproved + so.producteca_bindings[0].couponAmount ) <= 1.0
 
                 if (including_shipping_cost=="never"):
                     cond_total = abs(so.amount_total - so.producteca_bindings[0].amount_no_shipping ) <= 1.0

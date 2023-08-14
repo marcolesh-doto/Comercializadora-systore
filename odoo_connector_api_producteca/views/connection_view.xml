@@ -114,6 +114,7 @@
                   <group>
                     <field name="seller_user"/>
                     <field name="seller_team"/>
+                    <field name="company_id"/>
                     <field name="mode"/>
                   </group>
                 </group>

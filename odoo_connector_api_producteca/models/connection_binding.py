@@ -73,7 +73,7 @@ class ProductecaConnectionBindingProductTemplate(models.Model):
         #self.with_context(pricelist=pricelist.id).price
         #for plitem in product.item_ids:
         for pl in account.configuration.publish_price_lists:
-            plprice = product_tpl.with_context(pricelist=pl.id).price
+            plprice = get_price_from_pl( pl, product, quantity=1.0 )[pl.id]
             price = {
                 "priceListId": pl.id,
                 "priceList": pl.name,
@@ -111,26 +111,35 @@ class ProductecaConnectionBindingProductTemplate(models.Model):
         #_logger.info("account.configuration.publish_stock_locations")
         #_logger.info(account.configuration.publish_stock_locations.mapped("id"))
         locids = account.configuration.publish_stock_locations.mapped("id")
-        sq = self.env["stock.quant"].search([('product_tmpl_id','=',product_tmpl.id),('location_id','in',locids)],order="location_id asc")
-        if (sq):
-            #_logger.info( sq )
-            #_logger.info( sq.name )
-            for s in sq:
-                #TODO: filtrar por configuration.locations
-                #TODO: merge de stocks
-                #TODO: solo publicar available
-                if ( s.location_id.usage == "internal"):
-                    _logger.info( s )
-                    sjson = {
-                        "warehouseId": s.location_id.id,
-                        "warehouse": s.location_id.display_name,
-                        "quantity": s.quantity,
-                        "reserved": s.reserved_quantity,
-                        "available": s.quantity - s.reserved_quantity
-                    }
-                    #stocks.append(sjson)
-                    stocks_str+= str(sjson["warehouse"])+str(": ")+str(sjson["quantity"])+str("/")+str(str(sjson["available"]))
-                    stocks_str+= " "
+        #sq = self.env["stock.quant"].search([('product_tmpl_id','=',product_tmpl.id),('location_id','in',locids)],order="location_id asc")
+        qty_available_op = 0
+        for locid in locids:
+            locid_obj = self.env['stock.location'].browse(locid)
+            sq = []
+            for p in product_tmpl.product_variant_ids:
+                sq+= self.env['stock.quant']._gather( p, location_id=locid_obj )
+            if (sq):
+                #_logger.info( sq )
+                #_logger.info( sq.name )
+                quants = sq
+                quantity = (quants and sum([(quant.quantity) for quant in quants])) or 0
+                reserved_quantity = (quants and sum([(quant.reserved_quantity) for quant in quants])) or 0
+                for s in sq:
+                    #TODO: filtrar por configuration.locations
+                    #TODO: merge de stocks
+                    #TODO: solo publicar available
+                    if ( s.location_id.usage == "internal"):
+                        _logger.info( s )
+                        sjson = {
+                            "warehouseId": locid,
+                            "warehouse": sq.location_id.display_name,
+                            "quantity": quantity,
+                            "reserved": reserved_quantity,
+                            "available": quantity - reserved_quantity
+                        }
+                        #stocks.append(sjson)
+                        stocks_str+= str(sjson["warehouse"])+str(": ")+str(sjson["quantity"])+str("/")+str(str(sjson["available"]))
+                        stocks_str+= " "
         return stocks_str
 
     def _calculate_stock_resume_tmpl(self):
@@ -166,7 +175,7 @@ class ProductecaConnectionBindingProductVariant(models.Model):
         #self.with_context(pricelist=pricelist.id).price
         #for plitem in product.item_ids:
         for pl in account.configuration.publish_price_lists:
-            plprice = variant.with_context(pricelist=pl.id).price
+            plprice = get_price_from_pl(pl, variant, quantity=1.0)[pl.id]
             price = {
                 "priceListId": pl.id,
                 "priceList": pl.name,
@@ -206,28 +215,35 @@ class ProductecaConnectionBindingProductVariant(models.Model):
         #_logger.info("account.configuration.publish_stock_locations")
         #_logger.info(account.configuration.publish_stock_locations.mapped("id"))
         locids = account.configuration.publish_stock_locations.mapped("id")
-        sq = self.env["stock.quant"].search([('product_id','=',variant.id),('location_id','in',locids)],order="location_id asc")
-        if (sq):
-            #_logger.info( sq )
-            #_logger.info( sq.name )
-            for s in sq:
-                #TODO: filtrar por configuration.locations
-                #TODO: merge de stocks
-                #TODO: solo publicar available
-                if ( s.location_id.usage == "internal"):
-                    _logger.info( s )
-                    sjson = {
-                        "warehouseId": s.location_id.id,
-                        "warehouse": s.location_id.display_name,
-                        "quantity": s.quantity,
-                        "reserved": s.reserved_quantity,
-                        "available": s.quantity - s.reserved_quantity
-                    }
-                    #stocks.append(sjson)
-                    stocks_str+= str(sjson["warehouse"])+str(": ")+str(sjson["quantity"])+str("/")+str(str(sjson["available"]))
-                    stocks_str+= " "
-                    stocks_on_hand+= sjson["quantity"]
-                    stocks_available+= sjson["available"]
+        #sq = self.env["stock.quant"].search([('product_tmpl_id','=',product_tmpl.id),('location_id','in',locids)],order="location_id asc")
+        qty_available_op = 0
+        for locid in locids:
+            locid_obj = self.env['stock.location'].browse(locid)
+            sq = self.env['stock.quant']._gather( variant, location_id=locid_obj )
+            if (sq):
+                #_logger.info( sq )
+                #_logger.info( sq.name )
+                quants = sq
+                quantity = (quants and sum([(quant.quantity) for quant in quants])) or 0
+                reserved_quantity = (quants and sum([(quant.reserved_quantity) for quant in quants])) or 0
+                for s in sq:
+                    #TODO: filtrar por configuration.locations
+                    #TODO: merge de stocks
+                    #TODO: solo publicar available
+                    if ( s.location_id.usage == "internal"):
+                        _logger.info( s )
+                        sjson = {
+                            "warehouseId": locid,
+                            "warehouse": sq.location_id.display_name,
+                            "quantity": quantity,
+                            "reserved": reserved_quantity,
+                            "available": quantity - reserved_quantity
+                        }
+                        #stocks.append(sjson)
+                        stocks_str+= str(sjson["warehouse"])+str(": ")+str(sjson["quantity"])+str("/")+str(str(sjson["available"]))
+                        stocks_str+= " "
+                        stocks_on_hand+= quantity
+                        stocks_available+= sjson["available"]
                     #variant.stock = sjson["available"]
 
         return stocks_str, stocks_on_hand, stocks_available

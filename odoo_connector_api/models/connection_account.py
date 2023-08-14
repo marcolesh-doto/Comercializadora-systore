@@ -42,9 +42,9 @@ class OcapiConnectionAccount(models.Model):
             connacc.state = ocapi_state
 
     name = fields.Char(string='Name',index=True, required=True)
-    type = fields.Selection([("custom","Custom")],string='Connector',index=True)
-    company_id = fields.Many2one("res.company",string="Company",index=True)
-    country_id = fields.Many2one("res.country",string="Country",index=True)
+    type = fields.Selection([("custom","Custom")],string='Connector',index=True, required=True)
+    company_id = fields.Many2one("res.company",string="Company",index=True, required=True)
+    country_id = fields.Many2one("res.country",string="Country",index=True, required=True)
 
     client_id = fields.Char(string='Client Id/App Id', help='Client ID/App Id',size=128,index=True)
     secret_key = fields.Char(string='Secret Key/App Key', help='Secret Key/App Key',size=128,index=True)
@@ -52,7 +52,7 @@ class OcapiConnectionAccount(models.Model):
     state = fields.Boolean( compute=get_connector_state, string='State', help="Estado de la conexión", store=False )
     seller_id = fields.Char(string='App Seller Id', help='App Seller Id',size=128,index=True)
 
-    configuration = fields.Many2one( "ocapi.connection.configuration", string="Connection Parameters Configuration", help="Connection Parameters Configuration"  )
+    configuration = fields.Many2one( "ocapi.connection.configuration", string="Connection Parameters Configuration", help="Connection Parameters Configuration", required=True  )
 
     def authorize_token(self, client_id, secret_key ):
 

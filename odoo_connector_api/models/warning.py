@@ -189,4 +189,3 @@ class warning(models.TransientModel):
         res = self._message( id,  context=context )
         return res
 
-warning()

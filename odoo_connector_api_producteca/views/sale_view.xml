@@ -16,7 +16,7 @@
               </header>
               <sheet>
                 <div class="oe_title">
-                  <h1><field name="name"  readonly="1"/></h1>                  
+                  <h1><field name="name"  readonly="1"/></h1>
                 </div>
                 <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                   <button name='update' type="object"
@@ -28,7 +28,7 @@
                       string="Imprimir Guia"
                       attrs="{'invisible':[('integrations_integrationId','=',False)]}"
                       class="oe_stat_button"
-                      icon="fa-print"/>                    
+                      icon="fa-print"/>
                 </div>
                 <group>
                   <group>
@@ -55,7 +55,7 @@
                       <field name="date_created" invisible="1" readonly="1"/>
                       <field name="date_closed" invisible="1" readonly="1"/>
                       <field name="date"/>
-                      <field name="tags"/>                                            
+                      <field name="tags"/>
                       <!--field name="seller"/>
                       <field name="pack_order"/>
                       <field name="catalog_order"/-->
@@ -64,7 +64,10 @@
                       <field name="amount" widget="monetary"/>
                       <field name="amount_no_shipping" widget="monetary"/>
                       <field name="shippingCost"  widget="monetary"/>
+                      <field name="couponAmount"  widget="monetary"/>
+                      <field name="transaction_fee"  widget="monetary"/>
                       <field name="financialCost"  widget="monetary"/>
+
                       <field name="paidApproved"  widget="monetary"/>
                       <field name="currency"/>
                       <field name="customId"/>
@@ -94,6 +97,7 @@
                         <field name="account_payment_id"/>
                         <field name="amount"/>
                         <field name="couponAmount"/>
+                        <field name="transactionFee"/>
                         <field name="status"/>
                       </tree>
                     </field>
@@ -136,6 +140,8 @@
             <field name="arch" type="xml">
                 <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
                   <field name="producteca_bindings" string="Producteca Bindings"/>
+                  <field name="producteca_channel_binding" string="Producteca Channel / Canal"/>
+                  <field name="producteca_sale_order_account" string="Producteca Account / Marca"/>
                   <separator/>
                   <filter string="Producteca Orders" name="sale_orders_producteca" domain="[('producteca_bindings','!=',False)]" />
                 </xpath>
@@ -246,7 +252,7 @@
                 </xpath>
             </field>
         </record>
-        
+
         <record model="ir.ui.view" id="view_res_partner_form_producteca">
             <field name="name">res.partner.form.producteca</field>
             <field name="model">res.partner</field>
@@ -435,7 +441,7 @@
         		</search>
         	</field>
         </record>
-        
+
         <record id="producteca_product_pricelist_items_search_view" model="ir.ui.view">
         	<field name="name">Precios - Search</field>
         	<field name="model">product.pricelist.item</field>
@@ -444,7 +450,7 @@
         			<field name="product_id"/>
               <!--field name="name" /-->
               <!--field name="date_create" /-->
-              <field name="pricelist_id"/>              
+              <field name="pricelist_id"/>
               <!--field name="product_brand"/-->
               <field name="product_main_cat"/>
               <filter string="Producteca"

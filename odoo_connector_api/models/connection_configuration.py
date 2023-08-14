@@ -34,12 +34,12 @@ class OcapiConnectionConfiguration(models.Model):
     _description = "Ocapi Connection Parameters Configuration"
     #_inherit = "odoo_connector_api.connection"
 
-    name = fields.Char(string="Configuration Name")
-    mode = fields.Selection([("production","Production"),("test","Test"),("disabled","Disabled")], string="Configuration Mode")
+    name = fields.Char(string="Configuration Name", required=True)
+    mode = fields.Selection([("production","Production"),("test","Test"),("disabled","Disabled")], string="Configuration Mode", required=True)
     seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
     seller_team = fields.Many2one("crm.team", string="Equipo de venta", help="Equipo de ventas para ordenes de venta")
 
-    company_id = fields.Many2one("res.company",string="Company")
+    company_id = fields.Many2one("res.company",string="Company", required=True)
 
     #Import
     import_sales = fields.Boolean(string="Import sales")
