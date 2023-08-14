@@ -73,16 +73,17 @@ class ProductecaConnectionBindingProductTemplate(models.Model):
         #self.with_context(pricelist=pricelist.id).price
         #for plitem in product.item_ids:
         for pl in account.configuration.publish_price_lists:
-            plprice = get_price_from_pl( pl, product, quantity=1.0 )[pl.id]
-            price = {
-                "priceListId": pl.id,
-                "priceList": pl.name,
-                "amount": plprice,
-                "currency": pl.currency_id.name
-            }
-            #prices.append(price)
-            prices_str+= str(price["priceList"])+str(": ")+str(price["amount"])
-            prices.append(plprice)
+            for variant in product_tpl.product_variant_ids:
+                plprice = get_price_from_pl( pl, variant, quantity=1.0 )[pl.id]
+                price = {
+                    "priceListId": pl.id,
+                    "priceList": pl.name,
+                    "amount": plprice,
+                    "currency": pl.currency_id.name
+                }
+                #prices.append(price)
+                prices_str+= str(price["priceList"])+str(": ")+str(price["amount"])
+                prices.append(plprice)
 
         if not prices:
             prices.append(0.0)
