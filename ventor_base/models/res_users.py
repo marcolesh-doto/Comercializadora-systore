@@ -104,8 +104,9 @@ class ResUsers(models.Model):
         if 'groups_id' in vals:
             group_stock_picking_wave = self.env.ref('stock.group_stock_picking_wave')
             merp_wave_picking_menu = self.env.ref('ventor_base.merp_wave_picking_menu')
-            if group_stock_picking_wave not in self.groups_id and merp_wave_picking_menu in self.groups_id:
-                merp_wave_picking_menu.write({'users': [(3, self.id)]})
+            for user in self:
+                if group_stock_picking_wave not in user.groups_id and merp_wave_picking_menu in user.groups_id:
+                    merp_wave_picking_menu.write({'users': [(3, user.id)]})
 
     @api.model
     def create(self, vals):
