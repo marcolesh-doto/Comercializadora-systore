@@ -20,7 +20,7 @@ class SaleOrder(models.Model):
         endpoint_url = 'https://odoo.doto.com.mx/api/v1/vtex/invoice/order'
         headers = {
             'Content-Type': 'application/json',
-            'mkp': 'dotomxqa'
+            'mkp': 'doto'
         }
         data = {
             'order_id': order.id,
