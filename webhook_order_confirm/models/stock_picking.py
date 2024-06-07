@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, api
 import requests
 import logging
 
@@ -7,19 +7,12 @@ _logger = logging.getLogger(__name__)
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-    sale_id = fields.Many2one('sale.order', string='Sale Order', readonly=True)
-
-    @api.model
-    def create(self, vals):
-        res = super(StockPicking, self).create(vals)
-        if vals.get('state') == 'assigned':
-            self._trigger_endpoint(res, 'assigned')
-        return res
-
     def write(self, vals):
         res = super(StockPicking, self).write(vals)
+        _logger.debug("write method called with vals: %s", vals)
         if 'state' in vals and vals['state'] == 'assigned':
             for picking in self:
+                _logger.debug("State changed to assigned for picking: %s", picking.name)
                 self._trigger_endpoint(picking, 'assigned')
         return res
 
@@ -29,21 +22,16 @@ class StockPicking(models.Model):
             'Content-Type': 'application/json',
             'mkp': 'doto'
         }
-
-        sale_order = picking.sale_id
-        if sale_order:
-            data = {
-                'state': state,
-                'order_id': sale_order.id,
-            }
-
-            try:
-                response = requests.post(endpoint_url, json=data, headers=headers)
-                if response.status_code == 200:
-                    _logger.info('Successfully triggered endpoint for stock picking %s', picking.name)
-                else:
-                    _logger.error('Failed to trigger endpoint for stock picking %s, response: %s', picking.name, response.text)
-            except Exception as e:
-                _logger.error('Exception occurred when triggering endpoint for stock picking %s: %s', picking.name, str(e))
-        else:
-            _logger.error('No sale order found for stock picking %s', picking.name)
+        sale_order = picking.sale_id  # obtener la orden de venta asociada
+        data = {
+            'picking_id': picking.id,
+            'state': state,
+            'order_id': sale_order.id if sale_order else None,
+        }
+        _logger.debug("Sending data to endpoint: %s", data)
+        try:
+            response = requests.post(endpoint_url, json=data, headers=headers)
+            response.raise_for_status()
+            _logger.info('Successfully triggered endpoint for stock picking %s', picking.name)
+        except requests.exceptions.RequestException as e:
+            _logger.error('Failed to trigger endpoint for stock picking %s: %s', picking.name, str(e))
