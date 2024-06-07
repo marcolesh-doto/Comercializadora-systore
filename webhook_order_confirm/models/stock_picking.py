@@ -7,10 +7,15 @@ _logger = logging.getLogger(__name__)
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-    @api.model
-    def write(self, vals):
-        res = super(StockPicking, self).write(vals)
-        if 'state' in vals and vals['state'] == 'assigned':
+    def action_assign(self):
+        res = super(StockPicking, self).action_assign()
+        if self.state == 'assigned':
+            self._send_sale_order_to_endpoint()
+        return res
+
+    def button_validate(self):
+        res = super(StockPicking, self).button_validate()
+        if self.state == 'done':
             self._send_sale_order_to_endpoint()
         return res
 
