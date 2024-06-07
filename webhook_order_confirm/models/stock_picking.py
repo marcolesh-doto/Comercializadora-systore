@@ -1,19 +1,22 @@
-from odoo import models, api
+import json
 import requests
-import logging
-
-_logger = logging.getLogger(__name__)
+from odoo import models, api
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
+    @api.model
+    def create(self, vals):
+        picking = super(StockPicking, self).create(vals)
+        if picking.state == 'assigned':
+            self._trigger_endpoint(picking, picking.state)
+        return picking
+
     def write(self, vals):
         res = super(StockPicking, self).write(vals)
-        _logger.debug("write method called with vals: %s", vals)
-        if 'state' in vals and vals['state'] == 'assigned':
-            for picking in self:
-                _logger.debug("State changed to assigned for picking: %s", picking.name)
-                self._trigger_endpoint(picking, 'assigned')
+        for picking in self:
+            if 'state' in vals and vals['state'] == 'assigned':
+                self._trigger_endpoint(picking, vals['state'])
         return res
 
     def _trigger_endpoint(self, picking, state):
@@ -28,10 +31,7 @@ class StockPicking(models.Model):
             'state': state,
             'order_id': sale_order.id if sale_order else None,
         }
-        _logger.debug("Sending data to endpoint: %s", data)
-        try:
-            response = requests.post(endpoint_url, json=data, headers=headers)
-            response.raise_for_status()
-            _logger.info('Successfully triggered endpoint for stock picking %s', picking.name)
-        except requests.exceptions.RequestException as e:
-            _logger.error('Failed to trigger endpoint for stock picking %s: %s', picking.name, str(e))
+        response = requests.post(endpoint_url, headers=headers, data=json.dumps(data))
+        if response.status_code != 200:
+            raise UserError('Error sending request to endpoint: {}'.format(response.text))
+        return response

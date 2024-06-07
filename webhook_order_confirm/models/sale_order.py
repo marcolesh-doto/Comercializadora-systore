@@ -12,7 +12,7 @@ class SaleOrder(models.Model):
     def action_confirm(self):
         res = super(SaleOrder, self).action_confirm()
         for order in self:
-            self._trigger_endpoint(order, 'confirmed3')
+            self._trigger_endpoint(order, 'confirmed2')
         return res
 
     def _trigger_endpoint(self, order, state):
