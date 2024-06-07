@@ -10,21 +10,30 @@ class StockPicking(models.Model):
     def action_assign(self):
         res = super(StockPicking, self).action_assign()
         if self.state == 'assigned':
-            self._send_sale_order_to_endpoint()
+            self._send_sale_order_to_endpoint('assigned')
         return res
 
     def button_validate(self):
         res = super(StockPicking, self).button_validate()
         if self.state == 'done':
-            self._send_sale_order_to_endpoint()
+            self._send_sale_order_to_endpoint('done')
+        return res
+    
+    def write(self, vals):
+        res = super(StockPicking, self).write(vals)
+        if 'state' in vals:
+            if vals['state'] == 'assigned':
+                self._send_sale_order_to_endpoint('assigned')
+            elif vals['state'] == 'done':
+                self._send_sale_order_to_endpoint('done')
         return res
 
-    def _send_sale_order_to_endpoint(self):
+    def _send_sale_order_to_endpoint(self, state):
         for picking in self:
             if picking.sale_id:
                 sale_order_data = {
                     'order_id': picking.sale_id.id,
-                    'state': 'assigned'
+                    'state': state
                 }
                 endpoint = "https://odoo.doto.com.mx/api/v1/vtex/invoice/order"
                 headers = {'Content-Type': 'application/json', 'mkp': 'doto'}
