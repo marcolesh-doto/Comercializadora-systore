@@ -9,14 +9,16 @@ class StockPicking(models.Model):
 
     def action_assign(self):
         res = super(StockPicking, self).action_assign()
-        if self.state == 'assigned':
-            self._send_sale_order_to_endpoint('assigned')
+        for picking in self:
+            if picking.state == 'assigned':
+                picking._send_sale_order_to_endpoint('assigned')
         return res
 
     def button_validate(self):
         res = super(StockPicking, self).button_validate()
-        if self.state == 'done':
-            self._send_sale_order_to_endpoint('done')
+        for picking in self:
+            if picking.state == 'done':
+                picking._send_sale_order_to_endpoint('done')
         return res
     
     def write(self, vals):
