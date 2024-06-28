@@ -38,7 +38,7 @@ class StockPicking(models.Model):
                     'state': state
                 }
                 endpoint = "https://odoo.doto.com.mx/api/v1/vtex/invoice/order"
-                headers = {'Content-Type': 'application/json', 'mkp': 'doto'}
+                headers = {'Content-Type': 'application/json', 'mkp': 'dotomxqa'}
                 try:
                     response = requests.post(endpoint, json=sale_order_data, headers=headers)
                     response.raise_for_status()

@@ -9,14 +9,13 @@ _logger = logging.getLogger(__name__)
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
-    @api.multi
     def action_confirm(self):
         res = super(SaleOrder, self).action_confirm()
         for order in self:
-            self._trigger_endpoint(order)
+            self._trigger_endpoint(order, 'confirmed')
         return res
 
-    def _trigger_endpoint(self, order):
+    def _trigger_endpoint(self, order, state):
         endpoint_url = 'https://odoo.doto.com.mx/api/v1/vtex/invoice/order'
         headers = {
             'Content-Type': 'application/json',
@@ -24,6 +23,7 @@ class SaleOrder(models.Model):
         }
         data = {
             'order_id': order.id,
+            'state': state
         }
         response = requests.post(endpoint_url, json=data, headers=headers)
         if response.status_code != 200:
